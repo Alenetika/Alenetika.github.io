@@ -3,331 +3,117 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ASCII Art Viewer</title>
+    <title>Видеоплеер с автозапуском</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
         body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+
+        .video-container {
+            max-width: 800px;
+            margin: 0 auto;
             background-color: #000;
-            color: #0f0;
-            font-family: 'Courier New', monospace;
+            border-radius: 10px;
             overflow: hidden;
-            height: 100vh;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
 
-        .container {
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-        }
-
-        .header {
-            padding: 10px;
-            background-color: #111;
-            border-bottom: 1px solid #333;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        video {
+            width: 100%;
+            display: block;
         }
 
         .controls {
+            padding: 15px;
+            background-color: #333;
             display: flex;
             gap: 10px;
+            justify-content: center;
         }
 
         button {
-            background: #333;
-            color: #0f0;
-            border: 1px solid #0f0;
-            padding: 8px 16px;
-            cursor: pointer;
-            font-family: 'Courier New', monospace;
-            border-radius: 4px;
-            transition: all 0.3s;
-        }
-
-        button:hover {
-            background: #0f0;
-            color: #000;
-        }
-
-        .exit-btn {
-            background: #900;
-            color: white;
-            border: 1px solid #f00;
-        }
-
-        .exit-btn:hover {
-            background: #f00;
-        }
-
-        .ascii-container {
-            flex: 1;
-            overflow: auto;
-            padding: 20px;
-        }
-
-        .ascii-content {
-            white-space: pre;
-            font-size: 6px;
-            line-height: 1;
-            min-height: 100%;
-        }
-
-        .file-input {
-            display: none;
-        }
-
-        .color-palette {
-            display: flex;
-            gap: 5px;
-            align-items: center;
-        }
-
-        .color-option {
-            width: 20px;
-            height: 20px;
-            border: 1px solid #333;
-            cursor: pointer;
-            border-radius: 3px;
-        }
-
-        .color-option.active {
-            border: 2px solid #fff;
-        }
-
-        .loading {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.8);
-            padding: 20px;
-            border: 1px solid #0f0;
+            padding: 10px 20px;
+            border: none;
             border-radius: 5px;
-            z-index: 1000;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+
+        .play-btn {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .play-btn:hover {
+            background-color: #45a049;
+        }
+
+        .stop-btn {
+            background-color: #f44336;
+            color: white;
+        }
+
+        .stop-btn:hover {
+            background-color: #da190b;
+        }
+
+        .close-btn {
+            background-color: #ff9800;
+            color: white;
+        }
+
+        .close-btn:hover {
+            background-color: #e68900;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>ASCII Art Viewer</h1>
-            <div class="controls">
-                <div class="color-palette">
-                    <div class="color-option active" style="background-color: #0f0;" data-color="#0f0"></div>
-                    <div class="color-option" style="background-color: #fff;" data-color="#fff"></div>
-                    <div class="color-option" style="background-color: #FFBF00;" data-color="#FFBF00"></div>
-                    <div class="color-option" style="background-color: #0ff;" data-color="#0ff"></div>
-                    <div class="color-option" style="background-color: #f0f;" data-color="#f0f"></div>
-                </div>
-                <button onclick="document.getElementById('fileInput').click()">📁 Загрузить</button>
-                <button onclick="changeAsciiChars()">🔣 Символы</button>
-                <button onclick="downloadAscii()">💾 Сохранить</button>
-                <button class="exit-btn" onclick="exitFullscreen()">❌ Выход</button>
-            </div>
+    <div class="video-container">
+        <video id="myVideo" controls>
+            <source src="/video" type="video/mp4">
+            Ваш браузер не поддерживает видео.
+        </video>
+
+        <div class="controls">
+            <button class="play-btn" onclick="playVideo()">▶ Воспроизвести</button>
+            <button class="stop-btn" onclick="stopVideo()">⏹ Стоп</button>
+            <button class="close-btn" onclick="closeVideo()">✕ Закрыть</button>
         </div>
-
-        <div class="ascii-container">
-            <pre class="ascii-content" id="asciiOutput"></pre>
-        </div>
-
-        <input type="file" id="fileInput" class="file-input" accept="image/*" onchange="handleFileSelect(event)">
-    </div>
-
-    <div class="loading" id="loading" style="display: none;">
-        Загрузка и конвертация изображения...
     </div>
 
     <script>
-        // Конфигурация
-        const ASCII_CHARSETS = [
-            ["@", "#", "S", "%", "?", "*", "+", ";", ":", ",", "."],
-            ["█", "▓", "▒", "░", " ", " ", " ", " ", " ", " ", " "],
-            ["#", "&", "@", "$", "%", "?", "*", "+", ";", ":", ",", "."],
-            ["M", "N", "H", "Q", "U", "A", "D", "O", "C", "?", ">", "!", ":", "-", " "]
-        ];
+        const video = document.getElementById('myVideo');
 
-        let currentCharset = 0;
-        let currentColor = '#0f0';
-
-        // Предзагруженное изображение (замените на ваш base64 или URL)
-        const DEFAULT_IMAGE = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICAgIDxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9IiMzMzMiLz4KICAgIDxjaXJjbGUgY3g9IjEwMCIgY3k9IjEwMCIgcj0iODAiIGZpbGw9IiMwZjAiLz4KICAgIDx0ZXh0IHg9IjEwMCIgeT0iMTEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1zaXplPSIyMCI+QVNDSUk8L3RleHQ+Cjwvc3ZnPg==';
-
-        // Инициализация
-        window.onload = function() {
-            loadImageFromUrl(DEFAULT_IMAGE);
-            setupEventListeners();
-        };
-
-        function setupEventListeners() {
-            // Цвета
-            document.querySelectorAll('.color-option').forEach(option => {
-                option.addEventListener('click', function() {
-                    document.querySelectorAll('.color-option').forEach(opt => opt.classList.remove('active'));
-                    this.classList.add('active');
-                    currentColor = this.dataset.color;
-                    document.getElementById('asciiOutput').style.color = currentColor;
-                });
+        // Автозапуск при загрузке страницы
+        window.addEventListener('load', function() {
+            video.play().catch(error => {
+                console.log('Автозапуск заблокирован браузером:', error);
             });
+        });
 
-            // Горячие клавиши
-            document.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape') exitFullscreen();
-                if (e.key === 'c' || e.key === 'с') changeColor();
-                if (e.key === 'o' || e.key === 'о') document.getElementById('fileInput').click();
-            });
-
-            // Перетаскивание файлов
-            document.addEventListener('dragover', function(e) {
-                e.preventDefault();
-            });
-
-            document.addEventListener('drop', function(e) {
-                e.preventDefault();
-                if (e.dataTransfer.files.length > 0) {
-                    handleFileSelect({ target: { files: e.dataTransfer.files } });
-                }
-            });
+        function playVideo() {
+            video.play();
         }
 
-        function handleFileSelect(event) {
-            const file = event.target.files[0];
-            if (file && file.type.startsWith('image/')) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    loadImageFromUrl(e.target.result);
-                };
-                reader.readAsDataURL(file);
-            }
+        function stopVideo() {
+            video.pause();
+            video.currentTime = 0;
         }
 
-        function loadImageFromUrl(url) {
-            showLoading();
-            
-            const img = new Image();
-            img.onload = function() {
-                convertToAscii(img);
-                hideLoading();
-            };
-            img.onerror = function() {
-                hideLoading();
-                alert('Ошибка загрузки изображения');
-            };
-            img.src = url;
+        function closeVideo() {
+            stopVideo();
+            video.style.display = 'none';
         }
 
-        function convertToAscii(img) {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            
-            // Автоматическое масштабирование
-            const maxWidth = Math.min(150, Math.floor(window.innerWidth / 6));
-            const aspectRatio = img.height / img.width;
-            const width = maxWidth;
-            const height = Math.floor(width * aspectRatio * 0.55);
-
-            canvas.width = width;
-            canvas.height = height;
-
-            // Рисуем и обрабатываем изображение
-            ctx.drawImage(img, 0, 0, width, height);
-            const imageData = ctx.getImageData(0, 0, width, height);
-            const data = imageData.data;
-
-            let asciiArt = '';
-            const charset = ASCII_CHARSETS[currentCharset];
-
-            for (let y = 0; y < height; y++) {
-                for (let x = 0; x < width; x++) {
-                    const index = (y * width + x) * 4;
-                    const r = data[index];
-                    const g = data[index + 1];
-                    const b = data[index + 2];
-                    
-                    // Яркость (формула восприятия)
-                    const brightness = (0.299 * r + 0.587 * g + 0.114 * b);
-                    const charIndex = Math.floor(brightness / 255 * (charset.length - 1));
-                    
-                    asciiArt += charset[charIndex];
-                }
-                asciiArt += '\n';
-            }
-
-            document.getElementById('asciiOutput').textContent = asciiArt;
-            document.getElementById('asciiOutput').style.color = currentColor;
-        }
-
-        function changeAsciiChars() {
-            currentCharset = (currentCharset + 1) % ASCII_CHARSETS.length;
-            const asciiOutput = document.getElementById('asciiOutput');
-            if (asciiOutput.textContent.trim()) {
-                // Переконвертируем текущее изображение с новыми символами
-                const img = new Image();
-                const currentContent = asciiOutput.textContent;
-                asciiOutput.textContent = "🔄 Обновление...";
-                
-                setTimeout(() => {
-                    const tempCanvas = document.createElement('canvas');
-                    const tempCtx = tempCanvas.getContext('2d');
-                    tempCanvas.width = currentContent.split('\n')[0].length;
-                    tempCanvas.height = currentContent.split('\n').length;
-                    
-                    // Создаем временное изображение для переконвертации
-                    convertToAscii(img);
-                }, 100);
-            }
-        }
-
-        function changeColor() {
-            const colors = ['#0f0', '#fff', '#FFBF00', '#0ff', '#f0f'];
-            const currentIndex = colors.indexOf(currentColor);
-            const nextIndex = (currentIndex + 1) % colors.length;
-            currentColor = colors[nextIndex];
-            
-            document.querySelectorAll('.color-option').forEach(opt => opt.classList.remove('active'));
-            document.querySelector(`.color-option[data-color="${currentColor}"]`).classList.add('active');
-            document.getElementById('asciiOutput').style.color = currentColor;
-        }
-
-        function downloadAscii() {
-            const asciiText = document.getElementById('asciiOutput').textContent;
-            if (!asciiText.trim()) {
-                alert('Нет данных для сохранения');
-                return;
-            }
-
-            const blob = new Blob([asciiText], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'ascii-art.txt';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
-
-        function exitFullscreen() {
-            if (confirm('Выйти из ASCII Viewer?')) {
-                window.close();
-            }
-        }
-
-        function showLoading() {
-            document.getElementById('loading').style.display = 'block';
-        }
-
-        function hideLoading() {
-            document.getElementById('loading').style.display = 'none';
-        }
-
-        // Полноэкранный режим при загрузке
-        document.documentElement.requestFullscreen?.().catch(console.error);
+        // Обработка ошибок
+        video.addEventListener('error', function(e) {
+            console.error('Ошибка загрузки видео:', e);
+            alert('Ошибка загрузки видео. Проверьте путь к файлу.');
+        });
     </script>
 </body>
 </html>

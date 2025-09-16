@@ -3,162 +3,117 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>С Днём Рождения! 💖</title>
+    <title>Видеоплеер с автозапуском</title>
     <style>
         body {
-            background: linear-gradient(to bottom right, #ffebee, #bbdefb);
-            height: 100vh;
+            font-family: Arial, sans-serif;
             margin: 0;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            font-family: 'Arial', sans-serif;
-            text-align: center;
-            overflow: hidden;
-        }
-        h1 {
-            color: #d32f2f;
-            font-size: 2.5rem;
-            margin-bottom: 20px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
-        }
-        .message {
-            background-color: rgba(255, 255, 255, 0.9);
-            padding: 2rem;
-            border-radius: 20px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            max-width: 600px;
-            z-index: 10;
-        }
-        p {
-            font-size: 1.2rem;
-            line-height: 1.6;
-            margin: 1rem 0;
-        }
-        .hearts, .sparkles {
-            position: absolute;
-            font-size: 2rem;
-            pointer-events: none;
-            animation-iteration-count: infinite;
-        }
-        .hearts {
-            animation: fall 5s linear infinite;
-        }
-        .sparkles {
-            animation: float 6s ease-in-out infinite;
-        }
-        #voiceButton {
-            margin-top: 20px;
-            padding: 15px 30px;
-            font-size: 1.2rem;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 50px;
-            cursor: pointer;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-            transition: all 0.3s ease;
-        }
-        #voiceButton:hover {
-            background-color: #388E3C;
-            transform: scale(1.05);
+            padding: 20px;
+            background-color: #f0f0f0;
         }
 
-        /* Анимации для символов */
-        @keyframes fall {
-            0% { transform: translateY(-10vh) rotate(0deg); opacity: 0; }
-            10% { opacity: 1; }
-            90% { opacity: 0.8; }
-            100% { transform: translateY(110vh) rotate(360deg); opacity: 0; }
+        .video-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #000;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
-        @keyframes float {
-            0%, 100% { transform: translateY(0) translateX(0) rotate(0deg); }
-            25% { transform: translateY(-20px) translateX(10px) rotate(5deg); }
-            50% { transform: translateY(0) translateX(20px) rotate(0deg); }
-            75% { transform: translateY(-10px) translateX(10px) rotate(-5deg); }
+
+        video {
+            width: 100%;
+            display: block;
+        }
+
+        .controls {
+            padding: 15px;
+            background-color: #333;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+
+        .play-btn {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .play-btn:hover {
+            background-color: #45a049;
+        }
+
+        .stop-btn {
+            background-color: #f44336;
+            color: white;
+        }
+
+        .stop-btn:hover {
+            background-color: #da190b;
+        }
+
+        .close-btn {
+            background-color: #ff9800;
+            color: white;
+        }
+
+        .close-btn:hover {
+            background-color: #e68900;
         }
     </style>
 </head>
 <body>
-    <!-- Контейнер для анимированных символов -->
-    <div id="decoration"></div>
+    <div class="video-container">
+        <video id="myVideo" controls>
+            <source src="/video" type="video/mp4">
+            Ваш браузер не поддерживает видео.
+        </video>
 
-    <!-- Основное сообщение -->
-    <div class="message">
-        <h1>💖 С Днём Рождения, [Имя подруги]! 💖</h1>
-        <p>Дорогая, любимая, неповторимая!</p>
-        <p>В этот особенный день я хочу сказать тебе, как ты важна для меня. Пусть каждый твой день будет наполнен солнечным светом, радостными событиями и искренней любовью.</p>
-        <p>Мечтай, улыбайся и помни, что я всегда рядом, даже между городами 💕</p>
-        <p>С любовью, [Ваше имя]</p>
-
-        <!-- Кнопка для голосового поздравления -->
-        <button id="voiceButton">🎵 Озвучить поздравление</button>
+        <div class="controls">
+            <button class="play-btn" onclick="playVideo()">▶ Воспроизвести</button>
+            <button class="stop-btn" onclick="stopVideo()">⏹ Стоп</button>
+            <button class="close-btn" onclick="closeVideo()">✕ Закрыть</button>
+        </div>
     </div>
 
     <script>
-        // Функция для создания летающих символов
-        function createDecorations() {
-            const decorationContainer = document.getElementById('decoration');
-            const symbols = ['❤️', '✨', '🥳', '🎂', '🎁', '🎉'];
-            const numDecorations = 25;
+        const video = document.getElementById('myVideo');
 
-            for (let i = 0; i < numDecorations; i++) {
-                const decor = document.createElement('div');
-                const randomSymbol = symbols[Math.floor(Math.random() * symbols.length)];
-                decor.innerHTML = randomSymbol;
+        // Автозапуск при загрузке страницы
+        window.addEventListener('load', function() {
+            video.play().catch(error => {
+                console.log('Автозапуск заблокирован браузером:', error);
+            });
+        });
 
-                // Случайно выбираем класс для анимации
-                const animationClass = Math.random() > 0.5 ? 'hearts' : 'sparkles';
-                decor.className = animationClass;
-
-                // Случайная позиция и задержка анимации
-                decor.style.left = Math.random() * 100 + 'vw';
-                decor.style.animationDelay = Math.random() * 5 + 's';
-                decor.style.fontSize = (Math.random() * 1.5 + 1.5) + 'rem';
-
-                decorationContainer.appendChild(decor);
-            }
+        function playVideo() {
+            video.play();
         }
 
-        // Функция для озвучивания текста
-        function speakText() {
-            // Проверяем поддержку браузером
-            if ('speechSynthesis' in window) {
-                const speech = new SpeechSynthesisUtterance();
-                speech.lang = 'ru-RU'; // Устанавливаем язык
-                speech.rate = 1.0;   // Скорость речи
-                speech.pitch = 1.1;   // Высота тона (немного выше для праздника)
-                speech.volume = 1;    // Громкость
-
-                // Текст для озвучивания (можно сделать другим)
-                speech.text = "Дорогая [Имя подруги]. Поздравляю тебя с днём рождения! Желаю тебе бесконечно много счастья, здоровья и любви. Пусть все твои мечты сбываются. Целую и обнимаю крепко-крепко.";
-
-                // Запускаем синтезатор речи
-                window.speechSynthesis.speak(speech);
-
-                // Меняем текст кнопки на время озвучки
-                const button = document.getElementById('voiceButton');
-                button.textContent = '🔊 Звучит...';
-                button.disabled = true;
-
-                // По окончании речи возвращаем кнопку
-                speech.onend = function() {
-                    button.textContent = '🎵 Озвучить поздравление';
-                    button.disabled = false;
-                };
-
-            } else {
-                alert('К сожалению, ваш браузер не поддерживает озвучку текста.');
-            }
+        function stopVideo() {
+            video.pause();
+            video.currentTime = 0;
         }
 
-        // Запускаем всё после загрузки страницы
-        window.onload = function() {
-            createDecorations(); // Создаем анимацию
-            // Вешаем обработчик на кнопку
-            document.getElementById('voiceButton').addEventListener('click', speakText);
-        };
+        function closeVideo() {
+            stopVideo();
+            video.style.display = 'none';
+        }
+
+        // Обработка ошибок
+        video.addEventListener('error', function(e) {
+            console.error('Ошибка загрузки видео:', e);
+            alert('Ошибка загрузки видео. Проверьте путь к файлу.');
+        });
     </script>
 </body>
 </html>

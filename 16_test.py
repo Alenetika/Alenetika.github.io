@@ -1,11 +1,20 @@
 import tkinter as tk
-from tkinter import filedialog, messagebox
+from tkinter import filedialog, messagebox, ttk
 import os
 import time
 import cv2
 import numpy as np
 import threading
 from PIL import Image, ImageFilter, ImageEnhance, ImageTk
+import subprocess
+import tempfile
+import shutil
+
+import os
+
+# Добавь это в начало скрипта, перед созданием ASCIIViewer
+ffmpeg_path = r"C:\Projects\24_september\FFMPEG\ffmpeg-8.0-full_build\bin"
+os.environ['PATH'] = ffmpeg_path + os.pathsep + os.environ['PATH']
 
 class ASCIIViewer:
     def __init__(self, media_path=None):
@@ -47,6 +56,11 @@ class ASCIIViewer:
         self.is_playing_video = False
         self.video_thread = None
         self.current_frame = None
+        self.video_writer = None
+        self.output_video_path = None
+        self.is_processing_video = False
+        self.progress_window = None
+        self.current_video_path = None  # Путь к текущему видео
 
         # Бинды клавиш
         self.root.bind('<Escape>', lambda e: self.stop_video() or self.root.quit())
@@ -54,6 +68,9 @@ class ASCIIViewer:
         self.root.bind('<o>', lambda e: self.open_file())
         self.root.bind('<space>', lambda e: self.toggle_video_playback())
         self.root.bind('<q>', lambda e: self.stop_video())
+        # Бинды для сохранения
+        self.root.bind('<s>', lambda e: self.save_video())
+        self.root.bind('<a>', lambda e: self.save_audio())  # НОВЫЙ БИНД: Сохранение аудио
 
         # Загрузка медиа
         if media_path and os.path.exists(media_path):
@@ -69,14 +86,14 @@ class ASCIIViewer:
         ║                                                              ║
         ║    Нажмите O для открытия файла                             ║
         ║    C - смена цвета, ESC - выход                             ║
+        ║    S - сохранить видео как MP4                              ║
+        ║    A - сохранить аудио из видео                             ║
         ║                                                              ║
         ║    Поддерживаемые форматы:                                  ║
         ║    • Изображения: JPG, PNG, BMP, GIF                        ║
         """
 
-
         test_ascii += """║    • Видео: MP4, AVI, MOV, MKV (пробел - пауза)      ║"""
-
 
         test_ascii += """
         ║                                                              ║
@@ -98,6 +115,7 @@ class ASCIIViewer:
             if ext in ['.jpg', '.jpeg', '.png', '.bmp', '.gif', '.tiff']:
                 self.load_image(media_path)
             elif ext in ['.mp4', '.avi', '.mov', '.mkv', '.wmv']:
+                self.current_video_path = media_path  # Сохраняем путь к видео
                 self.load_video(media_path)
             else:
                 messagebox.showerror("Ошибка", f"Неподдерживаемый формат: {ext}")
@@ -127,6 +145,7 @@ class ASCIIViewer:
         try:
             self.stop_video()
             self.video_capture = cv2.VideoCapture(video_path)
+            self.current_video_path = video_path  # Сохраняем путь к видео
 
             if not self.video_capture.isOpened():
                 raise Exception("Не удалось открыть видео файл")
@@ -192,7 +211,6 @@ class ASCIIViewer:
         enhancer = ImageEnhance.Contrast(img)
         img = enhancer.enhance(1.3)
 
-
         pixels = np.array(img)
         ascii_str = ""
         for y in range(pixels.shape[0]):
@@ -201,7 +219,6 @@ class ASCIIViewer:
                 index = int(brightness / 255 * (len(self.ascii_chars) - 1))
                 ascii_str += self.ascii_chars[index]
             ascii_str += "\n"
-
 
         return ascii_str
 
@@ -235,7 +252,6 @@ class ASCIIViewer:
         enhancer = ImageEnhance.Contrast(img)
         img = enhancer.enhance(1.3)
 
-
         pixels = np.array(img)
         ascii_str = ""
         for y in range(pixels.shape[0]):
@@ -244,7 +260,6 @@ class ASCIIViewer:
                 index = int(brightness / 255 * (len(self.ascii_chars) - 1))
                 ascii_str += self.ascii_chars[index]
             ascii_str += "\n"
-
 
         return ascii_str
 
@@ -261,6 +276,9 @@ class ASCIIViewer:
         if self.video_capture:
             self.video_capture.release()
             self.video_capture = None
+        if self.video_writer:
+            self.video_writer.release()
+            self.video_writer = None
 
     def open_file(self):
         """Открытие файла"""
@@ -275,6 +293,309 @@ class ASCIIViewer:
         if file_path:
             self.stop_video()
             self.load_media(file_path)
+
+    def save_video(self):
+        """Сохранить обработанное видео как MP4"""
+        if not self.video_capture or not self.video_capture.isOpened():
+            messagebox.showwarning("Предупреждение", "Сначала откройте видео файл")
+            return
+
+        # Спросить куда сохранить
+        output_path = filedialog.asksaveasfilename(
+            defaultextension=".mp4",
+            filetypes=[("MP4 Video", "*.mp4"), ("Все файлы", "*.*")]
+        )
+
+        if not output_path:
+            return
+
+        try:
+            # Создать окно прогресса
+            self.create_progress_window()
+
+            # Запустить обработку в отдельном потоке
+            processing_thread = threading.Thread(
+                target=self.process_video_for_saving,
+                args=(output_path,),
+                daemon=True
+            )
+            processing_thread.start()
+
+        except Exception as e:
+            messagebox.showerror("Ошибка", f"Ошибка при сохранении видео:\n{str(e)}")
+
+    # НОВЫЙ МЕТОД: Сохранение аудио из видео
+    def save_audio(self):
+        """Извлечь и сохранить аудио из исходного видео"""
+        if not self.current_video_path or not os.path.exists(self.current_video_path):
+            messagebox.showwarning("Предупреждение", "Сначала откройте видео файл")
+            return
+
+        # Спросить куда сохранить аудио
+        output_path = filedialog.asksaveasfilename(
+            defaultextension=".mp3",
+            filetypes=[
+                ("MP3 Audio", "*.mp3"),
+                ("WAV Audio", "*.wav"),
+                ("Все файлы", "*.*")
+            ]
+        )
+
+        if not output_path:
+            return
+
+        try:
+            # Создать окно прогресса
+            self.create_progress_window("Извлечение аудио...")
+
+            # Запустить извлечение аудио в отдельном потоке
+            audio_thread = threading.Thread(
+                target=self.extract_audio,
+                args=(self.current_video_path, output_path),
+                daemon=True
+            )
+            audio_thread.start()
+
+        except Exception as e:
+            messagebox.showerror("Ошибка", f"Ошибка при сохранении аудио:\n{str(e)}")
+
+    # НОВЫЙ МЕТОД: Извлечение аудио с помощью ffmpeg
+    def extract_audio(self, input_path, output_path):
+        """Извлечь аудио из видео файла"""
+        try:
+            # Проверяем доступность ffmpeg
+            if not self.check_ffmpeg_available():
+                self.root.after(0, lambda: messagebox.showerror(
+                    "Ошибка",
+                    "FFmpeg не найден. Установите FFmpeg и добавьте его в PATH:\n"
+                    "Windows: https://ffmpeg.org/download.html\n"
+                    "Linux: sudo apt install ffmpeg\n"
+                    "Mac: brew install ffmpeg"
+                ))
+                self.root.after(0, self.close_progress_window)
+                return
+
+            # Определяем формат выходного файла по расширению
+            ext = os.path.splitext(output_path)[1].lower()
+            if ext == '.wav':
+                codec = 'pcm_s16le'
+            else:
+                codec = 'libmp3lame'  # По умолчанию MP3
+
+            # Команда для извлечения аудио
+            cmd = [
+                'ffmpeg',
+                '-i', input_path,
+                '-vn',              # Без видео
+                '-acodec', codec,
+                '-y',               # Перезаписать существующий файл
+                output_path
+            ]
+
+            # Запускаем процесс
+            process = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                universal_newlines=True
+            )
+
+            # Мониторим прогресс
+            duration = self.get_video_duration(input_path)
+            for line in process.stderr:
+                if 'time=' in line:
+                    time_str = line.split('time=')[1].split(' ')[0]
+                    current_time = self.time_to_seconds(time_str)
+                    if duration > 0:
+                        progress = (current_time / duration) * 100
+                        self.root.after(0, self.update_progress, progress)
+
+            process.wait()
+
+            if process.returncode == 0:
+                self.root.after(0, lambda: messagebox.showinfo(
+                    "Успех",
+                    f"Аудио сохранено как:\n{output_path}\n\n"
+                    f"Формат: {ext.upper()[1:]}\n"
+                    f"Исходное видео: {os.path.basename(input_path)}"
+                ))
+            else:
+                error = process.stderr.read()
+                raise Exception(f"Ошибка FFmpeg: {error}")
+
+        except Exception as e:
+            self.root.after(0, lambda: messagebox.showerror(
+                "Ошибка",
+                f"Ошибка при извлечении аудио:\n{str(e)}"
+            ))
+        finally:
+            self.root.after(0, self.close_progress_window)
+
+    # НОВЫЙ МЕТОД: Проверка доступности ffmpeg
+    def check_ffmpeg_available(self):
+        """Проверить, доступен ли ffmpeg"""
+        try:
+            subprocess.run(['ffmpeg', '-version'],
+                         capture_output=True,
+                         check=True)
+            return True
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            return False
+
+    # НОВЫЙ МЕТОД: Получение длительности видео
+    def get_video_duration(self, video_path):
+        """Получить длительность видео в секундах"""
+        try:
+            cmd = [
+                'ffprobe',
+                '-v', 'error',
+                '-show_entries', 'format=duration',
+                '-of', 'default=noprint_wrappers=1:nokey=1',
+                video_path
+            ]
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            return float(result.stdout.strip())
+        except:
+            return 0
+
+    # НОВЫЙ МЕТОД: Конвертация времени в секунды
+    def time_to_seconds(self, time_str):
+        """Конвертировать время формата HH:MM:SS.mmm в секунды"""
+        try:
+            h, m, s = time_str.split(':')
+            return int(h) * 3600 + int(m) * 60 + float(s)
+        except:
+            return 0
+
+    def create_progress_window(self, title="Обработка видео..."):
+        """Создать окно с прогресс баром"""
+        self.progress_window = tk.Toplevel(self.root)
+        self.progress_window.title(title)
+        self.progress_window.geometry("300x100")
+        self.progress_window.resizable(False, False)
+
+        tk.Label(self.progress_window, text=title).pack(pady=10)
+
+        self.progress_var = tk.DoubleVar()
+        progress_bar = ttk.Progressbar(
+            self.progress_window,
+            variable=self.progress_var,
+            maximum=100
+        )
+        progress_bar.pack(pady=10, padx=20, fill=tk.X)
+
+        self.progress_label = tk.Label(self.progress_window, text="0%")
+        self.progress_label.pack()
+
+    def update_progress(self, percentage):
+        """Обновить прогресс бар"""
+        if self.progress_window:
+            self.progress_var.set(percentage)
+            self.progress_label.config(text=f"{percentage:.1f}%")
+            self.progress_window.update()
+
+    def close_progress_window(self):
+        """Закрыть окно прогресса"""
+        if self.progress_window:
+            self.progress_window.destroy()
+            self.progress_window = None
+
+    def process_video_for_saving(self, output_path):
+        """Обработать видео и сохранить как MP4"""
+        try:
+            self.is_processing_video = True
+            self.is_playing_video = False
+
+            # Получить параметры исходного видео
+            fps = self.video_capture.get(cv2.CAP_PROP_FPS)
+            total_frames = int(self.video_capture.get(cv2.CAP_PROP_FRAME_COUNT))
+
+            # Перемотать в начало
+            self.video_capture.set(cv2.CAP_PROP_POS_FRAMES, 0)
+
+            # Получить размер ASCII кадра для создания видео
+            ret, test_frame = self.video_capture.read()
+            if not ret:
+                raise Exception("Не удалось прочитать тестовый кадр")
+
+            ascii_test = self.convert_frame_to_ascii(test_frame)
+            lines = ascii_test.split('\n')
+            frame_height = len(lines)
+            frame_width = len(lines[0]) if lines else 80
+
+            # Создать видео writer
+            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+            self.video_writer = cv2.VideoWriter(
+                output_path,
+                fourcc,
+                fps,
+                (frame_width * 6, frame_height * 12)  # Умножаем на размер символа
+            )
+
+            # Перемотать обратно в начало
+            self.video_capture.set(cv2.CAP_PROP_POS_FRAMES, 0)
+
+            # Обработать все кадры
+            for frame_num in range(total_frames):
+                if not self.is_processing_video:
+                    break
+
+                ret, frame = self.video_capture.read()
+                if not ret:
+                    break
+
+                # Конвертировать в ASCII
+                ascii_frame = self.convert_frame_to_ascii(frame)
+
+                # Создать изображение из ASCII текста
+                ascii_image = self.ascii_to_image(ascii_frame)
+
+                # Записать кадр в видео
+                self.video_writer.write(ascii_image)
+
+                # Обновить прогресс
+                progress = (frame_num + 1) / total_frames * 100
+                self.root.after(0, self.update_progress, progress)
+
+            # Завершить запись
+            self.video_writer.release()
+            self.video_writer = None
+
+            self.root.after(0, lambda: messagebox.showinfo("Успех", f"Видео сохранено как:\n{output_path}"))
+
+        except Exception as e:
+            self.root.after(0, lambda: messagebox.showerror("Ошибка", f"Ошибка обработки видео:\n{str(e)}"))
+        finally:
+            self.is_processing_video = False
+            self.root.after(0, self.close_progress_window)
+            # Вернуться к началу видео
+            if self.video_capture:
+                self.video_capture.set(cv2.CAP_PROP_POS_FRAMES, 0)
+
+    def ascii_to_image(self, ascii_text):
+        """Конвертировать ASCII текст в изображение OpenCV"""
+        lines = ascii_text.split('\n')
+        if not lines:
+            return np.zeros((100, 100, 3), dtype=np.uint8)
+
+        # Создать белое изображение
+        height = len(lines) * 12
+        width = len(lines[0]) * 6
+        image = np.ones((height, width, 3), dtype=np.uint8) * 255
+
+        # Нарисовать текст
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        font_scale = 0.2
+        color = (0, 0, 0)  # Черный текст
+        thickness = 1
+
+        for y, line in enumerate(lines):
+            for x, char in enumerate(line):
+                if char != ' ':
+                    position = (x * 6, (y + 1) * 12)
+                    cv2.putText(image, char, position, font, font_scale, color, thickness, cv2.LINE_AA)
+
+        return image
 
     def run(self):
         """Запуск приложения"""
@@ -302,6 +623,16 @@ def check_dependencies():
     except ImportError:
         print("⚠️  OpenCV не установлен - видео не будет работать")
 
+    # Проверка ffmpeg
+    try:
+        result = subprocess.run(['ffmpeg', '-version'], capture_output=True, text=True)
+        if result.returncode == 0:
+            print("✅ FFmpeg доступен для извлечения аудио")
+        else:
+            print("⚠️  FFmpeg не найден - извлечение аудио не будет работать")
+    except FileNotFoundError:
+        print("⚠️  FFmpeg не установлен - извлечение аудио не будет работать")
+
     return True
 
 
@@ -310,7 +641,7 @@ if __name__ == "__main__":
 
     if check_dependencies():
         print("✅ Основные зависимости доступны!")
-        viewer = ASCIIViewer('VID_20240818_112526.mp4')
+        viewer = ASCIIViewer('VID_20240804_140007.mp4')
         viewer.run()
     else:
         print("❌ Не все зависимости установлены")

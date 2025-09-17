@@ -22,13 +22,14 @@ class ASCIIViewer:
         self.root.title("ASCII Art Viewer")
         self.root.attributes('-fullscreen', True)
         self.root.configure(bg='black')
-
+        self.fontColor = "#2FC96B"
+        self.backgroundColor = "#000000"
         # Основной текстовый виджет
         self.text_widget = tk.Text(
             self.root,
             font=('Courier New', 6),
-            bg='black',
-            fg='green',
+            bg= self.backgroundColor,
+            fg= self.fontColor,
             wrap=tk.NONE,
             insertbackground='green',
             borderwidth=0,
@@ -48,7 +49,8 @@ class ASCIIViewer:
 
         # Палитра символов
         self.ascii_chars = ["@", "#", "S", "%", "?", "*", "+", ";", ":", ",", "."]
-        self.colors = ['green', 'white', '#FFBF00', 'cyan', 'magenta']
+
+        self.colors = [self.fontColor]
         self.current_color = 0
 
         # Переменные для видео
@@ -572,6 +574,11 @@ class ASCIIViewer:
             if self.video_capture:
                 self.video_capture.set(cv2.CAP_PROP_POS_FRAMES, 0)
 
+    def hex_to_rgb(self, hex_color):
+        """Конвертирует HEX цвет в RGB tuple"""
+        hex_color = hex_color.lstrip('#')
+        return tuple(int(hex_color[i:i + 2], 16) for i in (0, 2, 4))
+
     def ascii_to_image(self, ascii_text):
         """Конвертировать ASCII текст в изображение OpenCV"""
         lines = ascii_text.split('\n')
@@ -581,12 +588,14 @@ class ASCIIViewer:
         # Создать белое изображение
         height = len(lines) * 12
         width = len(lines[0]) * 6
-        image = np.ones((height, width, 3), dtype=np.uint8) * 255
+        image = np.ones((height, width, 3), dtype=np.uint8)
+        rgb_color = self.hex_to_rgb(self.backgroundColor)
+        image[:, :] = rgb_color
 
         # Нарисовать текст
         font = cv2.FONT_HERSHEY_SIMPLEX
         font_scale = 0.2
-        color = (0, 0, 0)  # Черный текст
+        color = self.hex_to_rgb(self.fontColor)
         thickness = 1
 
         for y, line in enumerate(lines):

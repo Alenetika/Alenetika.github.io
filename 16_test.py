@@ -48,7 +48,8 @@ class ASCIIViewer:
         scroll_x.pack(side=tk.BOTTOM, fill=tk.X)
 
         # Палитра символов
-        self.ascii_chars = ["0", "1",  "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "$", "%", "^", "&", "*", "(", ")", "_", "+", "-", "=", "[", "]", "{", "}", ";", "'", "#", ":", "@", "~", ",", ".", "/", "<", ">", "?", "\\", "|", "`", "¬", "¦"]
+        self.ascii_chars =\
+            ["@", "#", "S", "%", "?", "~", "モ", ";", ":", ",", "."]
 
         self.colors = [self.fontColor]
         self.current_color = 0
@@ -585,7 +586,7 @@ class ASCIIViewer:
         if not lines:
             return np.zeros((100, 100, 3), dtype=np.uint8)
 
-        # Создать белое изображение
+        # Создать изображение
         height = len(lines) * 12
         width = len(lines[0]) * 6
         image = np.ones((height, width, 3), dtype=np.uint8)
@@ -650,7 +651,7 @@ if __name__ == "__main__":
 
     if check_dependencies():
         print("✅ Основные зависимости доступны!")
-        viewer = ASCIIViewer('VID_20240804_140007.mp4')
+        viewer = ASCIIViewer('VID_20240818_112526.mp4')
         viewer.run()
     else:
         print("❌ Не все зависимости установлены")

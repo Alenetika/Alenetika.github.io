@@ -27,7 +27,7 @@ class ASCIIViewer:
         # Основной текстовый виджет
         self.text_widget = tk.Text(
             self.root,
-            font=('Courier New', 6),
+            font=('Moby Monospace', 5),
             bg= self.backgroundColor,
             fg= self.fontColor,
             wrap=tk.NONE,
@@ -48,7 +48,7 @@ class ASCIIViewer:
         scroll_x.pack(side=tk.BOTTOM, fill=tk.X)
 
         # Палитра символов
-        self.ascii_chars = ["@", "#", "S", "%", "?", "*", "+", ";", ":", ",", "."]
+        self.ascii_chars = ["0", "1",  "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "$", "%", "^", "&", "*", "(", ")", "_", "+", "-", "=", "[", "]", "{", "}", ";", "'", "#", ":", "@", "~", ",", ".", "/", "<", ">", "?", "\\", "|", "`", "¬", "¦"]
 
         self.colors = [self.fontColor]
         self.current_color = 0
@@ -593,7 +593,7 @@ class ASCIIViewer:
         image[:, :] = rgb_color
 
         # Нарисовать текст
-        font = cv2.FONT_HERSHEY_SIMPLEX
+        font = cv2.FONT_HERSHEY_PLAIN
         font_scale = 0.2
         color = self.hex_to_rgb(self.fontColor)
         thickness = 1

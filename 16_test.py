@@ -5,7 +5,7 @@ import time
 import cv2
 import numpy as np
 import threading
-from PIL import Image, ImageFilter, ImageEnhance, ImageTk
+from PIL import Image, ImageFont,ImageDraw, ImageFilter, ImageEnhance, ImageTk
 import subprocess
 import tempfile
 import shutil
@@ -49,10 +49,11 @@ class ASCIIViewer:
 
         # Палитра символов
         self.ascii_chars =\
-            ["@", "#", "S", "%", "?", "~", "モ", ";", ":", ",", "."]
+            ["@", "#", "S", "%", "?", "~",  ";", ":", ",", "."]
 
         self.colors = [self.fontColor]
         self.current_color = 0
+        self.font_size = 6
 
         # Переменные для видео
         self.video_capture = None
@@ -528,11 +529,13 @@ class ASCIIViewer:
 
             # Создать видео writer
             fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+            self.video_el_width = 6
+            self.video_el_height = 12
             self.video_writer = cv2.VideoWriter(
                 output_path,
                 fourcc,
                 fps,
-                (frame_width * 6, frame_height * 12)  # Умножаем на размер символа
+                (frame_width *  self.video_el_width, frame_height * self.video_el_height)  # Умножаем на размер символа
             )
 
             # Перемотать обратно в начало
@@ -581,31 +584,56 @@ class ASCIIViewer:
         return tuple(int(hex_color[i:i + 2], 16) for i in (0, 2, 4))
 
     def ascii_to_image(self, ascii_text):
-        """Конвертировать ASCII текст в изображение OpenCV"""
+        """Конвертировать ASCII текст в изображение с использованием внешнего шрифта"""
         lines = ascii_text.split('\n')
         if not lines:
             return np.zeros((100, 100, 3), dtype=np.uint8)
 
-        # Создать изображение
-        height = len(lines) * 12
-        width = len(lines[0]) * 6
-        image = np.ones((height, width, 3), dtype=np.uint8)
-        rgb_color = self.hex_to_rgb(self.backgroundColor)
-        image[:, :] = rgb_color
+        # Параметры шрифта
+        font_size = 10
+        font_path = "Moby Monospace.ttf"
 
-        # Нарисовать текст
-        font = cv2.FONT_HERSHEY_PLAIN
-        font_scale = 0.2
-        color = self.hex_to_rgb(self.fontColor)
-        thickness = 1
+        try:
+            font = ImageFont.truetype(font_path, font_size)
+        except IOError:
+            font = ImageFont.load_default()
 
+        # ВАЖНО: Используем ТЕ ЖЕ РАЗМЕРЫ, что и в VideoWriter
+        height = len(lines) *  self.video_el_height
+        width = len(lines[0]) * self.video_el_width
+
+        # Создаем изображение с PIL
+        bg_color = self.hex_to_rgb(self.backgroundColor)
+        text_color = self.hex_to_rgb(self.fontColor)
+
+        pil_image = Image.new('RGB', (width, height), color=bg_color)
+        draw = ImageDraw.Draw(pil_image)
+
+        # Рисуем текст с учетом фиксированного размера символов
         for y, line in enumerate(lines):
             for x, char in enumerate(line):
                 if char != ' ':
-                    position = (x * 6, (y + 1) * 12)
-                    cv2.putText(image, char, position, font, font_scale, color, thickness, cv2.LINE_AA)
+                    # Позиционируем каждый символ в своей ячейке 6x12
+                    position = (x *  self.video_el_width, y *  self.video_el_height)
 
-        return image
+
+
+                    draw.text(position, char, font=font, fill=text_color)
+
+        # Конвертируем PIL Image в OpenCV format
+        opencv_image = np.array(pil_image)
+        opencv_image = opencv_image.astype(np.uint8)
+
+        # Конвертируем RGB в BGR (OpenCV формат)
+        opencv_image = cv2.cvtColor(opencv_image, cv2.COLOR_RGB2BGR)
+
+        # Убедимся, что размер соответствует ожидаемому VideoWriter
+        expected_height = len(lines) * self.video_el_width
+        expected_width = len(lines[0]) * self.video_el_height
+
+
+
+        return opencv_image
 
     def run(self):
         """Запуск приложения"""

@@ -679,7 +679,7 @@ if __name__ == "__main__":
 
     if check_dependencies():
         print("✅ Основные зависимости доступны!")
-        viewer = ASCIIViewer('VID_20240818_112526.mp4')
+        viewer = ASCIIViewer('Вертикальное видео.mp4')
         viewer.run()
     else:
         print("❌ Не все зависимости установлены")

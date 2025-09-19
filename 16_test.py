@@ -48,8 +48,8 @@ class ASCIIViewer:
         scroll_x.pack(side=tk.BOTTOM, fill=tk.X)
 
         # Палитра символов
-        self.ascii_chars =\
-            ["@", "#", "S", "%", "?", "~",  ";", ":", ",", "."]
+        self.ascii_chars = \
+            [".", ",", ":", ";", "~", "?", "%", "S", "#", "@"]
 
         self.colors = [self.fontColor]
         self.current_color = 0

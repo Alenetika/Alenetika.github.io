@@ -17,7 +17,7 @@ class ASCIIViewer:
         # Основной текстовый виджет
         self.text_widget = tk.Text(
             self.root,
-            font=('Courier New', 6),
+            font=('Courier New', self.font_size),
             bg='black',
             fg='green',
             wrap=tk.NONE,

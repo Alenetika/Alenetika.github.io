@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Видеоплеер с автозапуском</title>
+    <title>Видеоплеер с ВКонтакте</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -21,9 +21,20 @@
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
 
-        video {
+        .video-wrapper {
+            position: relative;
+            padding-bottom: 56.25%;
+            height: 0;
+            overflow: hidden;
+        }
+
+        .video-wrapper iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
-            display: block;
+            height: 100%;
+            border: none;
         }
 
         .controls {
@@ -32,6 +43,7 @@
             display: flex;
             gap: 10px;
             justify-content: center;
+            flex-wrap: wrap;
         }
 
         button {
@@ -43,76 +55,68 @@
             transition: background-color 0.3s;
         }
 
-        .play-btn {
-            background-color: #4CAF50;
-            color: white;
-        }
+        .play-btn { background-color: #4CAF50; color: white; }
+        .play-btn:hover { background-color: #45a049; }
 
-        .play-btn:hover {
-            background-color: #45a049;
-        }
+        .stop-btn { background-color: #f44336; color: white; }
+        .stop-btn:hover { background-color: #da190b; }
 
-        .stop-btn {
-            background-color: #f44336;
-            color: white;
-        }
+        .close-btn { background-color: #ff9800; color: white; }
+        .close-btn:hover { background-color: #e68900; }
 
-        .stop-btn:hover {
-            background-color: #da190b;
-        }
+        .reopen-btn { background-color: #2196F3; color: white; }
+        .reopen-btn:hover { background-color: #0b7dda; }
 
-        .close-btn {
-            background-color: #ff9800;
-            color: white;
-        }
-
-        .close-btn:hover {
-            background-color: #e68900;
-        }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
     <div class="video-container">
-        <video id="myVideo" controls>
-            <source src="/video" type="video/mp4">
-            Ваш браузер не поддерживает видео.
-        </video>
+        <div class="video-wrapper">
+            <!-- ВСТАВЬТЕ СЮДА КОД ИЗ VK -->
+            <iframe id="vkVideo"
+                    src=https://vkvideo.ru/video_ext.php?oid=-232760445&id=456239017&hd=2&hash=a2e5b90ef2816765&autoplay=1"
+                    width="800"
+                    height="450"
+                    allow="autoplay; encrypted-media; fullscreen"
+                    frameborder="0"
+                    allowfullscreen>
+            </iframe>
+        </div>
 
         <div class="controls">
             <button class="play-btn" onclick="playVideo()">▶ Воспроизвести</button>
             <button class="stop-btn" onclick="stopVideo()">⏹ Стоп</button>
-            <button class="close-btn" onclick="closeVideo()">✕ Закрыть</button>
+            <button class="close-btn" onclick="closeVideo()">✕ Скрыть</button>
+            <button class="reopen-btn" onclick="reopenVideo()">↻ Показать</button>
         </div>
     </div>
 
     <script>
-        const video = document.getElementById('myVideo');
-
-        // Автозапуск при загрузке страницы
-        window.addEventListener('load', function() {
-            video.play().catch(error => {
-                console.log('Автозапуск заблокирован браузером:', error);
-            });
-        });
+        const iframe = document.getElementById('vkVideo');
 
         function playVideo() {
-            video.play();
+            const currentSrc = iframe.src;
+            if (!currentSrc.includes('autoplay=1')) {
+                iframe.src = currentSrc.replace('autoplay=0', 'autoplay=1') + '&autoplay=1';
+            }
         }
 
         function stopVideo() {
-            video.pause();
-            video.currentTime = 0;
+            iframe.src = iframe.src.replace('autoplay=1', 'autoplay=0');
         }
 
         function closeVideo() {
-            stopVideo();
-            video.style.display = 'none';
+            iframe.classList.add('hidden');
         }
 
-        // Обработка ошибок
-        video.addEventListener('error', function(e) {
-            console.error('Ошибка загрузки видео:', e);
-            alert('Ошибка загрузки видео. Проверьте путь к файлу.');
+        function reopenVideo() {
+            iframe.classList.remove('hidden');
+        }
+
+        // Автозапуск при загрузке
+        window.addEventListener('load', function() {
+            playVideo();
         });
     </script>
 </body>

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Минималистичный плеер</title>
+    <style>
+        /* Убираем все отступы и полосы прокрутки у всей страницы */
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden; /* Убирает скроллбар */
+            background-color: #000; /* Фон на случай, если видео не загрузится */
+        }
+
+        /* Контейнер, который maintains соотношение сторон */
+        .video-container {
+            position: relative;
+            width: 100%;
+            height: 0;
+            /* Вычисляем padding-top исходя из соотношения сторон видео (высота / ширина * 100%) */
+            /* 646 / 325 * 100% ≈ 198.77% */
+            padding-top: 198.77%;
+        }
+
+        /* Абсолютно позиционированный iframe, который растягивается на весь контейнер */
+        .video-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none; /* Убираем границу у iframe (дублируем frameborder="0") */
+        }
+    </style>
+</head>
+<body>
+    <div class="video-container">
+        <iframe src="https://vkvideo.ru/video_ext.php?oid=-232760445&id=456239020&hd=2&autoplay=1"
+                allow="autoplay; encrypted-media; fullscreen; picture-in-picture; screen-wake-lock;"
+                allowfullscreen>
+        </iframe>
+    </div>
+</body>
+</html>

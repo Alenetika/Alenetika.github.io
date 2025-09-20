@@ -32,7 +32,7 @@
             cursor: pointer;
             border-radius: 10px;
             overflow: hidden;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
             margin-bottom: 20px;
         }
 
@@ -53,7 +53,7 @@
             background-color: #000;
             border-radius: 10px;
             overflow: hidden;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
             display: none;
         }
 
@@ -94,19 +94,45 @@
             min-height: 44px; /* Минимальный размер для touch */
         }
 
-        .play-btn { background-color: #4CAF50; color: white; }
-        .play-btn:hover { background-color: #45a049; }
+        .play-btn {
+            background-color: #4CAF50;
+            color: white;
+        }
 
-        .stop-btn { background-color: #f44336; color: white; }
-        .stop-btn:hover { background-color: #da190b; }
+        .play-btn:hover {
+            background-color: #45a049;
+        }
 
-        .close-btn { background-color: #ff9800; color: white; }
-        .close-btn:hover { background-color: #e68900; }
+        .stop-btn {
+            background-color: #f44336;
+            color: white;
+        }
 
-        .reopen-btn { background-color: #2196F3; color: white; }
-        .reopen-btn:hover { background-color: #0b7dda; }
+        .stop-btn:hover {
+            background-color: #da190b;
+        }
 
-        .hidden { display: none; }
+        .close-btn {
+            background-color: #ff9800;
+            color: white;
+        }
+
+        .close-btn:hover {
+            background-color: #e68900;
+        }
+
+        .reopen-btn {
+            background-color: #2196F3;
+            color: white;
+        }
+
+        .reopen-btn:hover {
+            background-color: #0b7dda;
+        }
+
+        .hidden {
+            display: none;
+        }
 
         /* Медиазапросы для мобильных устройств */
         @media (max-width: 500px) {
@@ -142,77 +168,17 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="image-container" id="imageContainer">
-            <!-- Замените ссылку ниже на ваше изображение -->
-            <img src="проба.jpg" alt="Нажмите, чтобы посмотреть видео">
-        </div>
-
-        <div class="video-container" id="videoContainer">
-            <div class="video-wrapper">
-                <iframe id="vkVideo" src="about:blank" width="325" height="646" style="background-color: #000;" allow="autoplay; encrypted-media; fullscreen; picture-in-picture; screen-wake-lock;" frameborder="0" allowfullscreen></iframe>
-            </div>
-            <div class="controls">
-                <button class="play-btn" onclick="playVideo()">▶ Воспроизвести</button>
-                <button class="stop-btn" onclick="stopVideo()">⏹ Стоп</button>
-                <button class="close-btn" onclick="closeVideo()">✕ Скрыть</button>
-                <button class="reopen-btn" onclick="reopenVideo()">↻ Показать</button>
-            </div>
-        </div>
+<div class="container">
+    <div class="image-container" id="imageContainer">
+        <!-- Замените ссылку ниже на ваше изображение -->
+        <a href="second-page.html">
+            <img src="проба.jpg" alt="Перейти на вторую страницу">
+        </a>
     </div>
 
-    <script>
-        const imageContainer = document.getElementById('imageContainer');
-        const videoContainer = document.getElementById('videoContainer');
-        const iframe = document.getElementById('vkVideo');
 
-        // Функция для загрузки видео при нажатии на изображение
-        function loadVideo() {
-            // Скрываем изображение и показываем видео
-            imageContainer.style.display = 'none';
-            videoContainer.style.display = 'block';
+</div>
 
-            // Загружаем видео
-            iframe.src = "https://vkvideo.ru/video_ext.php?oid=-232760445&id=456239020&hd=2&autoplay=1";
 
-            // Автозапуск видео
-            playVideo();
-        }
-
-        // Добавляем обработчик клика на изображение
-        imageContainer.addEventListener('click', loadVideo);
-
-        // Функции управления видео
-        function playVideo() {
-            let currentSrc = iframe.src;
-            if (!currentSrc.includes('autoplay=1')) {
-                iframe.src = currentSrc.includes('autoplay=0') ?
-                    currentSrc.replace('autoplay=0', 'autoplay=1') :
-                    currentSrc + '&autoplay=1';
-            }
-        }
-
-        function stopVideo() {
-            let currentSrc = iframe.src;
-            iframe.src = currentSrc.replace('autoplay=1', 'autoplay=0');
-        }
-
-        function closeVideo() {
-            iframe.classList.add('hidden');
-        }
-
-        function reopenVideo() {
-            iframe.classList.remove('hidden');
-        }
-
-        // Обработка изменения ориентации устройства
-        window.addEventListener('orientationchange', function() {
-            // Перезагрузка iframe при смене ориентации
-            setTimeout(function() {
-                let currentSrc = iframe.src;
-                iframe.src = currentSrc;
-            }, 300);
-        });
-    </script>
 </body>
 </html>

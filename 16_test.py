@@ -49,7 +49,7 @@ class ASCIIViewer:
 
         # Палитра символов
         self.ascii_chars = \
-            [".", ",", ":", ";", "~", "?", "%", "S", "#", "@"]
+            [".", ",", ":", ";", ";", ";", "~", "~", "?", "?", "%",  "%",  "%", "S", "@", "@" ]
 
         self.colors = [self.fontColor]
         self.current_color = 0
@@ -679,7 +679,7 @@ if __name__ == "__main__":
 
     if check_dependencies():
         print("✅ Основные зависимости доступны!")
-        viewer = ASCIIViewer('Вертикальное видео.mp4')
+        viewer = ASCIIViewer('video_2025-09-22_21-36-38.mp4')
         viewer.run()
     else:
         print("❌ Не все зависимости установлены")
